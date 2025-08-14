@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "Cringe Meter for LinkedIn",
+  "version": "0.1.0",
+  "permissions": ["storage", "activeTab", "scripting"],
+  "host_permissions": [
+    "*://www.linkedin.com/*",
+    "http://localhost/*",
+    "https://*/*"
+  ],
+  "background": { "service_worker": "dist/background.js" },
+  "content_scripts": [
+    {
+      "matches": ["*://www.linkedin.com/*"],
+      "js": ["dist/content.js"],
+      "css": ["dist/ui.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "options_page": "dist/options.html",
+  "action": { "default_title": "Cringe Meter" }
+}

@@ -1,0 +1,258 @@
+:root {
+  --bg: #0b0f14;
+  --panel: #0f1620;
+  --muted: #9ca3af;
+  --txt: #e5e7eb;
+  --accent: #22d3ee;
+  --green: #22c55e;
+  --lime: #84cc16;
+  --amber: #f59e0b;
+  --orange: #f97316;
+  --red: #ef4444;
+}
+
+* {
+  box-sizing: border-box;
+}
+html,
+body,
+#root {
+  height: 100%;
+}
+body {
+  margin: 0;
+  background: radial-gradient(
+    1000px 600px at 50% -300px,
+    #121b26 0%,
+    #0b0f14 60%
+  );
+  color: var(--txt);
+  font: 16px/1.45 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+}
+
+.container {
+  min-height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.card {
+  width: min(1000px, 96vw);
+  background: linear-gradient(180deg, #0d141d, #0b0f14);
+  border: 1px solid #1f2937;
+  border-radius: 16px;
+  padding: 14px 14px 18px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  /* allow the gauge to fully render on small screens */
+  overflow: visible;
+}
+
+.header {
+  text-align: center;
+  margin: 4px 0 8px;
+}
+.header h1 {
+  margin: 0 0 2px;
+  font-size: 24px;
+}
+.header p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 900px) {
+  .grid {
+    grid-template-columns: 520px 1fr;
+    align-items: center;
+  }
+}
+
+.gaugeWrap {
+  position: relative;
+  width: 100%;
+  /* Use an explicit, responsive HEIGHT so the next section
+     never overlaps on mobile */
+  height: clamp(220px, 42vw, 320px);
+  margin-inline: auto;
+  margin-bottom: 14px; /* give breathing room from textarea */
+}
+
+.gauge {
+  width: 100%;
+  height: 100%;
+  display: block;
+  filter: drop-shadow(0 16px 50px rgba(0, 0, 0, 0.35));
+}
+
+.scoreBig {
+  position: absolute;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-weight: 800;
+  font-size: clamp(22px, 5vw, 34px);
+  text-shadow: 0 6px 24px rgba(0, 0, 0, 0.7);
+}
+
+/* Keep the gauge overlay spinner on top if loading */
+.gaugeOverlay {
+  position: absolute;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(7, 12, 18, 0.4);
+  backdrop-filter: blur(2px);
+  border-radius: 12px;
+  z-index: 2;
+}
+.gaugeOverlay.show {
+  display: flex;
+}
+.spinnerLg {
+  width: 34px;
+  height: 34px;
+  border: 4px solid rgba(255, 255, 255, 0.25);
+  border-top-color: #fff;
+  border-right-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.bands {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+  padding: 0 8px;
+}
+.band {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid #1f2937;
+  background: #0c131b;
+  color: #cbd5e1;
+  font-size: 13px;
+}
+.dot {
+  inline-size: 10px;
+  block-size: 10px;
+  border-radius: 50%;
+}
+.band.active {
+  color: #fff;
+  border-color: currentColor;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.05);
+}
+
+.textbox {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 4px;
+}
+textarea {
+  width: 100%;
+  min-height: clamp(150px, 28vh, 240px);
+  resize: vertical;
+  background: #0c131b;
+  color: var(--txt);
+  border: 1px solid #1f2937;
+  border-radius: 12px;
+  padding: 14px 16px;
+  outline: none;
+}
+textarea:focus {
+  border-color: #334155;
+  box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.12);
+}
+
+.actions {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: linear-gradient(180deg, #24d1e6, #17b2c7);
+  color: #061017;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  padding: 12px 18px;
+  border-radius: 999px;
+  border: 0;
+  cursor: pointer;
+  box-shadow: 0 10px 24px rgba(36, 209, 230, 0.24),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.18);
+}
+.btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+  box-shadow: none;
+}
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 3px solid rgba(6, 16, 23, 0.3);
+  border-top-color: #061017;
+  border-right-color: #061017;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.result {
+  margin-top: 8px;
+  padding: 14px 16px;
+  background: #0c131b;
+  border: 1px solid #1f2937;
+  border-radius: 12px;
+}
+.result h3 {
+  margin: 0 0 6px;
+  font-size: 18px;
+}
+.result p {
+  margin: 6px 0;
+  color: #cdd6df;
+}
+
+.mini {
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 8px;
+  text-align: center;
+}
+
+/* Mobile polish */
+@media (max-width: 599px) {
+  .card {
+    padding: 12px;
+  }
+  .band {
+    font-size: 12px;
+    padding: 5px 9px;
+  }
+  .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
