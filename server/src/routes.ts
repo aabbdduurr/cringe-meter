@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { ScoreRequestSchema } from "@cringe/shared";
-import { scoreWithOpenAI } from "./openai";
+import { scoreWithOpenAI } from "./openai.js";
 
 export const router = Router();
 

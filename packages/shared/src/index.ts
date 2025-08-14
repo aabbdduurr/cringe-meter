@@ -1,3 +1,3 @@
-export * from "./labels";
-export * from "./normalize";
-export * from "./schema";
+export * from "./labels.js";
+export * from "./normalize.js";
+export * from "./schema.js";

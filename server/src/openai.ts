@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import { env } from "./env";
+import { env } from "./env.js";
 import { bandFromScore } from "@cringe/shared";
 
 const client = new OpenAI({ apiKey: env.openaiKey });

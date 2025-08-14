@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
-import { env } from "./env";
-import Redis from "ioredis";
+import { env } from "./env.js";
+import { Redis } from "ioredis";
 
 // Simple per-IP daily limit. In-memory fallback; Redis if REDIS_URL provided.
 const memory = new Map<string, { count: number; resetAt: number }>();

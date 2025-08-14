@@ -40,7 +40,7 @@ export function Gauge({
   onSweepDone,
 }: {
   value: number;
-  bands: Band[];
+  bands: readonly Band[];
   loading?: boolean;
   onSweepDone?: () => void;
 }) {
