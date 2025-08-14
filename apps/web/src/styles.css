@@ -45,7 +45,6 @@ body {
   padding: 14px 14px 18px;
   box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45),
     inset 0 1px 0 rgba(255, 255, 255, 0.04);
-  /* allow the gauge to fully render on small screens */
   overflow: visible;
 }
 
@@ -78,11 +77,9 @@ body {
 .gaugeWrap {
   position: relative;
   width: 100%;
-  /* Use an explicit, responsive HEIGHT so the next section
-     never overlaps on mobile */
   height: clamp(220px, 42vw, 320px);
   margin-inline: auto;
-  margin-bottom: 14px; /* give breathing room from textarea */
+  margin-bottom: 14px;
 }
 
 .gauge {
@@ -255,4 +252,58 @@ textarea:focus {
     width: 100%;
     justify-content: center;
   }
+}
+
+/* Result header + tabs */
+.resultHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  border-left: 4px solid;
+  padding-left: 10px;
+}
+.resultHeader h3 {
+  margin: 0;
+  font-size: 18px;
+}
+.pill {
+  inline-size: 10px;
+  block-size: 10px;
+  border-radius: 50%;
+}
+
+.tabs {
+  display: flex;
+  gap: 8px;
+  margin: 8px 0 6px;
+}
+.tab {
+  background: #0b131b;
+  color: #cbd5e1;
+  border: 1px solid #1f2937;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+}
+.tab.active {
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.05);
+}
+.panel {
+  padding-top: 2px;
+}
+.reason {
+  color: #d7dee7;
+  line-height: 1.55;
+}
+.rewrite {
+  color: #e5e7eb;
+  line-height: 1.55;
+  background: #0a1219;
+  border: 1px dashed #223244;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-weight: 600;
 }

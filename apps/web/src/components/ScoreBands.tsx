@@ -8,9 +8,9 @@ const COLORS: Record<Label, string> = {
   wtf: "#ef4444",
 };
 const TITLES: Record<Label, string> = {
-  not_cringe: "Not cringe",
-  try_hard: "A bit try-hard",
-  meh: "Meh / salesy",
+  not_cringe: "Authentic",
+  try_hard: "Not Bad",
+  meh: "Salesy",
   cringe: "Cringe",
   wtf: "WTF",
 };

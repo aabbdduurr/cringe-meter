@@ -4,7 +4,6 @@ import { dirname } from "path";
 const files = [
   ["src/options.html", "dist/options.html"],
   ["src/ui.css", "dist/ui.css"],
-  // manifest.json stays at repo root (it already points to dist/*.js)
 ];
 
 for (const [from, to] of files) {

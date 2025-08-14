@@ -25,8 +25,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [displayScore, setDisplayScore] = useState(0);
   const [result, setResult] = useState<CringeResult | null>(null);
-  const activeLabel: Label | null =
-    result?.label ?? (text ? labelFrom(displayScore) : null);
+  const activeLabel: Label | null = result?.label ?? null;
 
   // optional tiny "blip" after landing to feel lively
   const [blip, setBlip] = useState(false);
