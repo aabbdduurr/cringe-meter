@@ -2,30 +2,89 @@
 <html>
   <head>
     <meta charset="utf-8" />
+    <title>Cringe Meter – Options</title>
     <style>
       body {
-        font-family: system-ui;
-        padding: 16px;
-        max-width: 600px;
+        font: 14px/1.4 system-ui;
+        padding: 20px;
+        color: #111;
       }
       label {
         display: block;
-        margin: 8px 0;
+        font-weight: 700;
+        margin: 12px 0 6px;
+      }
+      input,
+      select {
+        width: 420px;
+        max-width: 100%;
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+      }
+      .row {
+        margin-bottom: 12px;
+      }
+      .hint {
+        color: #666;
+        font-size: 12px;
+      }
+      button {
+        margin-top: 14px;
+        padding: 10px 16px;
+        border: 0;
+        border-radius: 8px;
+        background: #111;
+        color: #fff;
+        cursor: pointer;
       }
     </style>
   </head>
   <body>
-    <h2>Cringe Meter Settings</h2>
-    <label
-      >Server URL
+    <h2>Cringe Meter – Settings</h2>
+
+    <div class="row">
+      <label>API mode</label>
+      <select id="mode">
+        <option value="openai">Use my OpenAI API key</option>
+        <option value="server">Use a scoring server</option>
+      </select>
+      <div class="hint">
+        OpenAI runs in your browser with your key. Server calls your provided
+        endpoint (/score).
+      </div>
+    </div>
+
+    <div class="row" id="openaiRow">
+      <label>OpenAI API key</label>
+      <input id="openaiKey" type="password" placeholder="sk-..." />
+      <div class="hint">
+        Stored locally in your browser’s extension storage.
+      </div>
+    </div>
+
+    <div class="row" id="serverRow" style="display: none">
+      <label>Server URL</label>
       <input
-        id="server"
-        placeholder="http://localhost:8787"
-        style="width: 100%"
-    /></label>
-    <label><input type="checkbox" id="auto" checked /> Auto-score posts</label>
+        id="serverUrl"
+        type="text"
+        placeholder="https://your-api.onrender.com"
+      />
+      <div class="hint">
+        Must expose POST /score { text } → { score,label,rationale,suggestion }.
+      </div>
+    </div>
+
+    <div class="row">
+      <label>Auto-score feed posts</label>
+      <select id="autoscore">
+        <option value="on">On</option>
+        <option value="off">Off (click badge to score)</option>
+      </select>
+    </div>
+
     <button id="save">Save</button>
-    <div id="saved" style="color: green; display: none">Saved!</div>
-    <script src="options.js"></script>
+
+    <script type="module" src="options.js"></script>
   </body>
 </html>

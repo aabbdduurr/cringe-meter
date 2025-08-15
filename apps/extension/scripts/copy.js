@@ -1,19 +1,26 @@
-import { mkdirSync, copyFileSync } from "fs";
-import { dirname } from "path";
+import fs from "fs";
+import path from "path";
+
+const here = path.dirname(new URL(import.meta.url).pathname);
+const ROOT = path.resolve(here, ".."); // apps/extension
+const SRC = path.join(ROOT, "src");
+const DIST = path.join(ROOT, "dist");
+
+fs.mkdirSync(DIST, { recursive: true });
 
 const files = [
-  ["src/options.html", "dist/options.html"],
-  ["src/ui.css", "dist/ui.css"],
+  "manifest.json",
+  "options.html",
+  "ui.css",
+  //   "icons/icon16.png",
+  //   "icons/icon48.png",
+  //   "icons/icon128.png",
 ];
 
-for (const [from, to] of files) {
-  const dir = dirname(to);
-  if (dir && dir !== ".") mkdirSync(dir, { recursive: true });
-  try {
-    copyFileSync(from, to);
-    console.log("copied", from, "→", to);
-  } catch (e) {
-    console.error("copy failed for", from, "→", to, e?.message || e);
-    process.exitCode = 1;
-  }
+for (const rel of files) {
+  const src = path.join(SRC, rel);
+  const dst = path.join(DIST, rel);
+  fs.mkdirSync(path.dirname(dst), { recursive: true });
+  fs.copyFileSync(src, dst);
+  console.log("copied", rel);
 }

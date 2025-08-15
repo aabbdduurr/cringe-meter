@@ -1,15 +1,37 @@
-const server = document.getElementById("server") as HTMLInputElement;
-const auto = document.getElementById("auto") as HTMLInputElement;
-const save = document.getElementById("save") as HTMLButtonElement;
-const saved = document.getElementById("saved") as HTMLDivElement;
+const modeEl = document.getElementById("mode") as HTMLSelectElement;
+const keyEl = document.getElementById("openaiKey") as HTMLInputElement;
+const serverEl = document.getElementById("serverUrl") as HTMLInputElement;
+const autoscoreEl = document.getElementById("autoscore") as HTMLSelectElement;
+const openaiRow = document.getElementById("openaiRow")!;
+const serverRow = document.getElementById("serverRow")!;
+const saveBtn = document.getElementById("save") as HTMLButtonElement;
 
-chrome.storage.local.get(["server", "auto"]).then((v) => {
-  server.value = v.server || "http://localhost:8787";
-  auto.checked = v.auto ?? true;
-});
+function updateVis() {
+  const m = modeEl.value;
+  openaiRow.style.display = m === "openai" ? "" : "none";
+  serverRow.style.display = m === "server" ? "" : "none";
+}
 
-save.onclick = async () => {
-  await chrome.storage.local.set({ server: server.value, auto: auto.checked });
-  saved.style.display = "block";
-  setTimeout(() => (saved.style.display = "none"), 1500);
+modeEl.addEventListener("change", updateVis);
+
+chrome.storage.local.get(
+  ["mode", "openaiKey", "serverUrl", "autoscore"],
+  (cfg) => {
+    modeEl.value = cfg.mode ?? "openai";
+    keyEl.value = cfg.openaiKey ?? "";
+    serverEl.value = cfg.serverUrl ?? "";
+    autoscoreEl.value = cfg.autoscore ?? "on";
+    updateVis();
+  }
+);
+
+saveBtn.onclick = async () => {
+  await chrome.storage.local.set({
+    mode: modeEl.value,
+    openaiKey: keyEl.value.trim(),
+    serverUrl: serverEl.value.trim().replace(/\/+$/, ""),
+    autoscore: autoscoreEl.value,
+  });
+  saveBtn.textContent = "Saved ✔";
+  setTimeout(() => (saveBtn.textContent = "Save"), 900);
 };

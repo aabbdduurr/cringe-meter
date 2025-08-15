@@ -1,42 +1,47 @@
-.cringe-meter-badge {
+.cm-badge {
   position: absolute;
-  top: 8px;
-  right: 8px;
-  z-index: 9999;
-  display: flex;
+  top: 9px;
+  right: 40px;
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  padding: 6px 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(10, 15, 20, 0.85);
+  color: #e5e7eb;
+  font: 600 12px/1 system-ui;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  z-index: 9999;
 }
-.cringe-meter-badge .bar {
-  width: 6px;
-  height: 24px;
-  border-radius: 6px;
+.cm-badge .cm-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #9ca3af;
 }
-.cringe-meter-badge .score {
-  font-weight: 800;
-  font-size: 14px;
+.cm-badge.cm-loading .cm-dot {
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  border-top-color: #fff;
+  border-right-color: #fff;
+  background: transparent;
+  animation: cmspin 0.9s linear infinite;
+  width: 14px;
+  height: 14px;
 }
-.cringe-meter-badge .tag {
-  text-transform: capitalize;
-  color: #6b7280;
-  font-size: 12px;
+.cm-badge.cm-ok .cm-dot {
+  background: #22c55e;
 }
-.cringe-meter-tooltip {
-  position: absolute;
-  top: 36px;
-  right: 0;
-  background: #111;
-  color: #fff;
-  padding: 10px;
-  border-radius: 8px;
-  max-width: 320px;
-  display: none;
+.cm-badge.cm-warn .cm-dot {
+  background: #f59e0b;
 }
-.cringe-meter-badge:hover .cringe-meter-tooltip {
-  display: block;
+.cm-badge.cm-bad .cm-dot {
+  background: #f97316;
+}
+.cm-badge.cm-err .cm-dot {
+  background: #ef4444;
+}
+@keyframes cmspin {
+  to {
+    transform: rotate(360deg);
+  }
 }

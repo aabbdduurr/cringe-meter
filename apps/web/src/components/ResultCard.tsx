@@ -3,7 +3,7 @@ import type { Label } from "./ScoreBands";
 
 const TITLE: Record<Label, string> = {
   not_cringe: "Clean & authentic",
-  try_hard: "A tad try-hard",
+  try_hard: "Not too bad",
   meh: "Kinda salesy / meh",
   cringe: "Cringe",
   wtf: "WTF – dial it back",
