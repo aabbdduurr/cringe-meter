@@ -78,12 +78,21 @@ export default function App() {
   return (
     <div className="container">
       <div className="card">
-        <div className="header">
-          <h1>Cringe Meter</h1>
+        <header className="header">
+          <div className="brand">
+            <img
+              style={{ width: "80px", height: "80px" }}
+              src="/favicon.png"
+              alt="Cringe Meter"
+              className="brandIcon"
+            />
+            <h1>Cringe Meter</h1>
+          </div>
           <p>
+            {" "}
             Is your LinkedIn post <em>cringe-worthy</em>?
           </p>
-        </div>
+        </header>
 
         <div className="grid">
           <div>
@@ -98,6 +107,7 @@ export default function App() {
 
           <div className="textbox">
             <textarea
+              style={{ fontSize: "16px", lineHeight: "1.45" }}
               placeholder={placeholder}
               value={text}
               onChange={(e) => setText(e.target.value)}
@@ -109,7 +119,7 @@ export default function App() {
                 disabled={loading || !text.trim()}
               >
                 {loading ? <span className="spinner" /> : null}
-                <span>{loading ? "Scoring…" : "Is this cringe?"}</span>
+                <span>{loading ? "Scoring…" : "Score"}</span>
               </button>
             </div>
             <ResultCard
