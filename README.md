@@ -1,276 +1,350 @@
-### Cringe Meter (LinkedIn)
+# Cringe Meter (LinkedIn)
 
-Inline “cringe meter” for LinkedIn posts (Chrome extension) + website + server (thin OpenAI proxy). Monorepo managed with pnpm workspaces.
+Inline “cringe meter” for LinkedIn posts (Chrome extension) + website + server (thin OpenAI proxy).
+Monorepo managed with pnpm workspaces.
 
-Table of contents
+## Monorepo Layout
 
-Monorepo layout
-
-Requirements
-
-Install
-
-Build
-
-Run locally
-
-Configuration
-
-API
-
-Deploy
-
-Chrome Extension
-
-Troubleshooting
-
-Contributing
-
-License
-
-Monorepo layout
+```
 apps/
-extension/ # Chrome MV3 extension (content script + options UI)
-web/ # Vite + React website
+  extension/     # Chrome MV3 extension (content script + options UI)
+  web/           # Vite + React website
 packages/
-shared/ # Shared TS types & helpers (Zod schemas, band utils)
-server/ # Express server (OpenAI thin proxy + rate limit)
+  shared/        # Shared TS types & helpers (Zod schemas, band utils)
+server/          # Express server (OpenAI thin proxy + rate limit)
+```
 
-Requirements
+## Quick Start
 
-Node 20.x
+### 0) Requirements
 
-pnpm 9.x or 10.x (managed via Corepack)
+- **Node**: 20.x (we use ESM everywhere)
+- **pnpm**: 9.x or 10.x (via Corepack)
 
+```sh
 node -v
 corepack enable
-corepack prepare pnpm@9.12.3 --activate # or a recent 10.x
+corepack prepare pnpm@9.12.3 --activate   # or a recent 10.x
 pnpm -v
+```
 
-Install
+If you see `Unknown option: frozen-lockfile` or Corepack key signature errors, jump to the Troubleshooting section.
 
-From repo root:
+### 1) Install deps (root)
 
+```sh
 pnpm install
+```
 
-Build
+### 2) First build (very important)
 
-Build shared first (important), then everything:
+Build the shared package before anything else:
 
+```sh
 pnpm -w -F @cringe/shared build
 pnpm build
+```
 
-Run locally
-Server (Express)
-cp server/.env.example server/.env
+### 3) Run locally
+
+#### Server (Express)
+
+```sh
+cp server/.env.example server/.env    # create & fill secrets
 pnpm dev:server
+# -> http://localhost:8787 (default)
+```
 
-# -> http://localhost:8787
+#### Website (Vite)
 
-Website (Vite)
+```sh
 pnpm dev:web
+# -> http://localhost:5173 (default)
+```
 
-# -> http://localhost:5173
+#### Chrome Extension
 
-Chrome extension
+```sh
 pnpm -F @cringe/extension build
+# Load unpacked: chrome://extensions → Developer mode → Load unpacked → select apps/extension/dist
+```
 
-# Chrome → chrome://extensions → Developer mode → Load unpacked → apps/extension/dist
+---
 
-Configuration
+## Configuration
 
-Create server/.env:
+Create `server/.env`:
 
+```ini
 # Server
-
 PORT=8787
 
 # OpenAI
-
 OPENAI_API_KEY=sk-...
 
 # Rate limit (per IP per 24h)
-
 DAILY_LIMIT=50
 
-# Optional: Redis for distributed rate limiting
-
+# Optional Redis for distributed rate limiting; leave empty to use in-memory
 REDIS_URL=
+```
 
-API
+---
 
-POST /score
+## API (server)
 
-Request:
+### POST /score
 
-{ "text": "LinkedIn post text..." }
+**Body:**
 
-Response:
+```json
+{ "text": "..." }
+```
 
+**Resp:**
+
+```json
 {
-"score": 0,
-"label": "not_cringe",
-"rationale": "why the score",
-"suggestion": "rewrite suggestion"
+  "score": 0..100,
+  "label": "not_cringe" | "try_hard" | "meh" | "cringe" | "wtf",
+  "rationale": "string",
+  "suggestion": "string"
 }
+```
 
-Labels: not_cringe, try_hard, meh, cringe, wtf.
+The server prompt is consistent with the extension (OpenAI mode) and returns strict JSON.
 
-Deploy
-Website → S3 (static)
+---
+
+## Build & Deploy
+
+### Website → S3/Static
+
+```sh
 pnpm -F @cringe/web build
+# upload apps/web/dist/** to S3 (optionally front with CloudFront)
+```
 
-# upload apps/web/dist/\*\* to S3 (optionally behind CloudFront)
+Recommended `<head>` (already in template):
 
-Recommended in apps/web/index.html:
+```html
+<link rel="icon" href="/favicon.ico" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+<meta name="theme-color" content="#0b0f14" />
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+/>
+```
 
-Icons (/favicon.svg, apple-touch icon)
-
-Theme color: <meta name="theme-color" content="#0b0f14">
-
-Viewport: width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover
-
-Server → Render (or any Node host)
+### Server → Render (or any Node host)
 
 Build command:
 
-pnpm install
-pnpm -w -F @cringe/shared build
-pnpm -F server build
+```sh
+pnpm install && pnpm -w -F @cringe/shared build && pnpm -F server build
+```
 
 Start command:
 
+```sh
 node server/dist/index.js
+```
 
-Env: OPENAI_API_KEY, DAILY_LIMIT, REDIS_URL?, PORT (or use host’s PORT).
+Env: `OPENAI_API_KEY`, `DAILY_LIMIT`, `REDIS_URL?`, `PORT` (Render sets its own, so use `process.env.PORT`).
 
-Chrome Extension
+Our `server/package.json` uses `tsc → dist/`. Don’t forget to build `@cringe/shared` first.
 
-Build a distributable zip:
+### Chrome Web Store
 
+Build zip:
+
+```sh
 pnpm -F @cringe/extension build
 cd apps/extension/dist
 zip -r ../cringe-meter-vX.Y.Z.zip .
+```
 
-Upload the zip in the Chrome Web Store Developer Dashboard.
-Permissions: only storage and https://www.linkedin.com/*.
+Upload in Developer Dashboard, fill listing, privacy, and submit.
 
-Troubleshooting
-Cannot find module @cringe/shared
+---
 
-Build shared first:
+## Development Scripts
 
-pnpm -w -F @cringe/shared build
+At the repo root:
 
-Ensure packages/shared/package.json:
-
-{
-"main": "dist/index.js",
-"types": "dist/index.d.ts",
-"exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } }
+```json
+"scripts": {
+  "build": "pnpm -r run build",
+  "dev:server": "pnpm --filter server dev",
+  "dev:web": "pnpm --filter @cringe/web dev",
+  "build:extension": "pnpm --filter @cringe/extension build",
+  "typecheck": "pnpm -r run typecheck"
 }
+```
 
-Import @cringe/shared (do not import from ../packages/shared/src).
+---
 
-Type errors for Node/express types
+## Known Gotchas
+
+### 1) “Cannot find module '@cringe/shared'” (or types)
+
+- Build shared first: `pnpm -w -F @cringe/shared build`
+- Ensure `packages/shared/package.json` has:
+
+```json
+{
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" }
+  }
+}
+```
+
+- Don’t import via relative path, always use `@cringe/shared`.
+
+### 2) TypeScript Node/Express types
+
+If you see `TS2688` / `TS7016`:
+
+```sh
 pnpm -F server add -D @types/node @types/express @types/cors @types/morgan
+```
 
-server/tsconfig.json should include:
+In `server/tsconfig.json`:
 
+```json
 {
-"compilerOptions": {
-"module": "NodeNext",
-"moduleResolution": "NodeNext",
-"types": ["node"],
-"rootDir": "src",
-"outDir": "dist",
-"strict": true,
-"skipLibCheck": true
+  "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "types": ["node"],
+    "strict": true,
+    "rootDir": "src",
+    "outDir": "dist",
+    "skipLibCheck": true
+  }
 }
-}
+```
 
-ioredis “not constructable”
+### 3) ioredis types
 
-Use default import:
-
+```ts
 import Redis from "ioredis";
 const redis = process.env.REDIS_URL ? new Redis(process.env.REDIS_URL) : null;
+```
 
-If types still complain:
+If TS still complains (older types):
 
-import \* as IORedis from "ioredis";
+```ts
+import * as IORedis from "ioredis";
 const RedisCtor = (IORedis as any).default || IORedis;
-const redis = process.env.REDIS_URL ? new RedisCtor(process.env.REDIS_URL) : null;
+const redis = process.env.REDIS_URL
+  ? new RedisCtor(process.env.REDIS_URL)
+  : null;
+```
 
-Extension: missing Chrome types
+### 4) Extension: missing `chrome` types
+
+```sh
 pnpm add -D @types/chrome -w
+```
 
-apps/extension/tsconfig.json should include:
+In `apps/extension/tsconfig.json`:
 
+```json
 { "compilerOptions": { "types": ["chrome"] } }
+```
 
-Extension: manifest/assets not copied
+### 5) Extension: manifest/assets not copied
 
-Build script must copy:
+Ensure `apps/extension/scripts/copy.js` copies:
 
-manifest.json
+- `manifest.json`
+- `options.html, options.js/css`
+- `ui.css`
+- `icons/**`
 
-options.html (+ its JS/CSS)
+Script should be:
 
-ui.css
-
-icons/\*\*
-
-Script example in apps/extension/package.json:
-
+```json
 "build": "tsc -p tsconfig.json && node ./scripts/copy.js"
+```
 
-Corepack / pnpm issues
+### 6) Corepack / pnpm errors
 
-Signature error:
+- Signature error:
 
+```sh
 corepack disable
 npm i -g pnpm@9
-
 # or
-
 corepack enable
 corepack prepare pnpm@9.12.3 --activate
+```
 
-Unknown option: frozen-lockfile → update pnpm or drop that flag.
+- `Unknown option: frozen-lockfile`: update pnpm or just run `pnpm install`.
 
-Server: no dist/index.js
+### 7) Server “no dist/index.js”
 
 You forgot to build:
 
+```sh
 pnpm -w -F @cringe/shared build
 pnpm -F server build
 node server/dist/index.js
+```
 
-Extension badge missing
+### 8) Extension badge not showing
 
-Ensure you’re on https://www.linkedin.com/* with real posts (activity/ugcPost).
+Check `manifest.json`:
 
-Reload unpacked extension after build.
+```json
+"permissions": ["storage"],
+"host_permissions": ["https://www.linkedin.com/*"]
+```
 
-Debug:
+Enable debug:
 
-chrome.storage.local.set({ debug: true })
+```js
+chrome.storage.local.set({ debug: true });
+```
 
-Contributing
+### 9) Popover issues
 
-Keep shared types in packages/shared.
+Fixed in latest build. If misaligned, rebuild & reload.
 
-Use ESM imports.
+---
 
-Run pnpm typecheck before PRs.
+## Rate Limiting
 
-License
+- Per-IP daily limit via Redis (or in-memory fallback).
+- Headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`.
+- Returns **429** when exceeded.
 
-MIT. Not affiliated with LinkedIn. “LinkedIn” is a trademark of LinkedIn Corp.
+---
 
-.env.example (server)
+## Contributing
+
+- Keep shared types in `packages/shared`.
+- Prefer ESM imports; avoid path hacks to `src`.
+- Run `pnpm typecheck` before PRs.
+
+---
+
+## License
+
+MIT. Not affiliated with LinkedIn.  
+“LinkedIn” is a trademark of LinkedIn Corp.
+
+---
+
+## Example `.env`
+
+```ini
 PORT=8787
 OPENAI_API_KEY=
 DAILY_LIMIT=50
 REDIS_URL=
+```
