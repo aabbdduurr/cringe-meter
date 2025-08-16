@@ -1,39 +1,29 @@
 {
-  "name": "Cringe Meter for LinkedIn",
-  "description": "Shows a cringe score overlay on LinkedIn posts.",
-  "version": "0.3.0",
   "manifest_version": 3,
-  "options_page": "options.html",
-  "permissions": ["storage"],
-  "host_permissions": [
-    "https://www.linkedin.com/*",
-    "https://api.openai.com/*",
-    "http://localhost/*",
-    "https://*.onrender.com/*"
-  ],
-  "background": { "service_worker": "background.js" },
-  "content_scripts": [
-    {
-      "matches": ["https://www.linkedin.com/*"],
-      "css": ["ui.css"],
-      "js": ["content.js"],
-      "run_at": "document_idle"
-    }
-  ],
+  "name": "Cringe Meter for LinkedIn",
+  "short_name": "Cringe Meter",
+  "version": "0.1.0",
+  "description": "Rates LinkedIn posts from 0–100 with a clear label and rewrite suggestions. Works with your own API key or your server.",
   "icons": {
     "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png",
     "256": "icons/icon256.png",
     "512": "icons/icon512.png"
   },
-  "action": {
-    "default_icon": {
-      "16": "icons/icon16.png",
-      "48": "icons/icon48.png",
-      "128": "icons/icon128.png",
-      "256": "icons/icon256.png",
-      "512": "icons/icon512.png"
+  "permissions": ["storage"],
+  "host_permissions": ["https://www.linkedin.com/*"],
+  "content_scripts": [
+    {
+      "matches": ["https://www.linkedin.com/*"],
+      "js": ["content.js"],
+      "css": ["ui.css"],
+      "run_at": "document_idle"
     }
+  ],
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
   }
 }

@@ -13,6 +13,7 @@ const files = new Set([
   "options.html",
   "ui.css",
   "icons/icon16.png",
+  "icons/icon32.png",
   "icons/icon48.png",
   "icons/icon128.png",
   "icons/icon256.png",
