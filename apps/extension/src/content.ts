@@ -1,35 +1,81 @@
-// content.ts
 type ScorePayload = { text: string };
 type ScoreResult = {
   score: number;
-  label: string;
+  label: "not_cringe" | "try_hard" | "meh" | "cringe" | "wtf" | string;
   rationale?: string;
   suggestion?: string;
 };
+
+const hasChromeStorage =
+  typeof chrome !== "undefined" && !!chrome?.storage?.local;
+
+type KV = Record<string, any>;
+function readLocal(keys: string[]): Promise<KV> {
+  if (!hasChromeStorage) return Promise.resolve({});
+  return new Promise((resolve) => chrome.storage.local.get(keys, resolve));
+}
+function writeLocal(obj: KV): Promise<void> {
+  if (!hasChromeStorage) return Promise.resolve();
+  return new Promise((resolve) => chrome.storage.local.set(obj, resolve));
+}
 
 const IS_LI = location.hostname.includes("linkedin.com");
 if (!IS_LI) {
   /* safety */
 }
 
-// Be liberal in what we match, strict in what we accept.
+const VALID_POST_URN = /urn:li:(activity|ugcpost):/i;
+
+function findPostAnchor(root: Element): HTMLElement | null {
+  const up = root.closest("[data-urn]") as HTMLElement | null;
+  if (
+    up?.getAttribute("data-urn") &&
+    VALID_POST_URN.test(up.getAttribute("data-urn")!)
+  ) {
+    return up;
+  }
+
+  const down =
+    (root.querySelector(
+      '[data-urn^="urn:li:activity:"]'
+    ) as HTMLElement | null) ||
+    (root.querySelector('[data-urn^="urn:li:ugcPost:"]') as HTMLElement | null);
+  if (
+    down?.getAttribute("data-urn") &&
+    VALID_POST_URN.test(down.getAttribute("data-urn")!)
+  ) {
+    return down;
+  }
+  return null;
+}
+
 const POST_CANDIDATES = [
-  // canonical
-  'article[data-urn*="activity:" i]',
-  'article[data-urn*="ugcpost:" i]',
-  // some variants nest data-urn inside the article
-  'article:has([data-urn*="activity:" i])',
-  'article:has([data-urn*="ugcpost:" i])',
-  // fallback: div containers LinkedIn sometimes uses
-  'div[data-urn*="activity:" i]',
-  'div[data-urn*="ugcpost:" i]',
+  'article[data-urn^="urn:li:activity:"]',
+  'article[data-urn^="urn:li:ugcPost:"]',
+  'div[data-urn^="urn:li:activity:"]',
+  'div[data-urn^="urn:li:ugcPost:"]',
+  "div.feed-shared-update-v2",
+  "div.update-components-card",
 ].join(",");
 
-// UI bits
 const SPINNER_HTML = `<span class="cm-dot cm-spin"></span><span> Scoring…</span>`;
 const ERROR_HTML = `<span class="cm-dot cm-red"></span><span> ERR</span>`;
 
-// --- text extraction ---------------------------------------------------------
+const results = new WeakMap<HTMLElement, ScoreResult>();
+const popovers = new WeakMap<HTMLElement, HTMLElement>();
+const hostIndex = new Map<string, HTMLElement>(); // reverse: hostId -> container
+let globalClickBound = false;
+
+// ---------- utils ----------
+const ESC = (s: string) =>
+  s.replace(
+    /[&<>"']/g,
+    (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[
+        c
+      ]!)
+  );
+
 function findPostText(el: Element): string {
   const candidates = [
     '[data-test-id="post-content"]',
@@ -38,44 +84,36 @@ function findPostText(el: Element): string {
     "div.feed-shared-update-v2__description-wrapper",
     "div.feed-shared-text__text-view",
     'span[dir="ltr"]',
-    // fallback
-    ".update-components-text, .break-words",
+    ".update-components-text",
+    ".break-words",
   ];
   for (const sel of candidates) {
     const n = (el as HTMLElement).querySelector(sel);
-    if (n && n.textContent && n.textContent.trim().length > 0) {
-      const t = n.textContent.replace(/\s+/g, " ").trim();
-      if (t.length > 20) return t.slice(0, 4000);
-    }
+    if (!n) continue;
+    const t = n.textContent?.replace(/\s+/g, " ").trim() ?? "";
+    if (t.length > 20) return t.slice(0, 4000);
   }
-  // last resort
   const t = (el.textContent || "").replace(/\s+/g, " ").trim();
   return t.slice(0, 4000);
 }
 
-function normalizeContainer(node: Element): HTMLElement | null {
-  // prefer the article if present, else the data-urn element
+function normalizeContainer(node: Element): HTMLElement {
   const article = node.closest("article");
-  const container = (article ||
-    node.closest("[data-urn]") ||
-    node) as HTMLElement;
-  // ensure a positioning context for absolute badge
+  const container = (article || node) as HTMLElement;
   const cs = getComputedStyle(container);
   if (cs.position === "static") container.style.position = "relative";
   return container;
 }
 
 function looksLikePost(node: Element): boolean {
-  // reject obvious non-posts
   const text = findPostText(node);
   if (text.length < 20) return false;
-  // skip promos/sponsored
   const s = node.textContent || "";
   if (/Promoted|Sponsored/i.test(s)) return false;
   return true;
 }
 
-// --- badge helpers -----------------------------------------------------------
+// ---------- badge ----------
 function ensureBadge(container: HTMLElement): HTMLElement {
   let badge = container.querySelector<HTMLElement>(".cm-badge");
   if (!badge) {
@@ -86,7 +124,6 @@ function ensureBadge(container: HTMLElement): HTMLElement {
   }
   return badge;
 }
-
 function setBadgeLoading(badge: HTMLElement) {
   badge.classList.remove("cm-ok", "cm-warn", "cm-bad", "cm-err");
   badge.classList.add("cm-loading");
@@ -100,37 +137,237 @@ function setBadgeError(badge: HTMLElement, msg = "ERR") {
 }
 function setBadgeScore(badge: HTMLElement, r: ScoreResult) {
   badge.classList.remove("cm-loading", "cm-err");
-  const band = r.label as any;
-  const label =
+  const labelText =
     (
       {
         not_cringe: "Authentic",
         try_hard: "Not bad",
-        meh: "Salesy",
+        meh: "Meh",
         cringe: "Cringe",
         wtf: "WTF",
       } as Record<string, string>
-    )[band] ?? "Score";
+    )[r.label] ?? "Score";
 
   const cls =
-    band === "not_cringe"
+    r.label === "not_cringe"
       ? "cm-ok"
-      : band === "try_hard"
+      : r.label === "try_hard"
       ? "cm-ok"
-      : band === "meh"
+      : r.label === "meh"
       ? "cm-warn"
-      : band === "cringe"
+      : r.label === "cringe"
       ? "cm-bad"
       : "cm-err";
 
   badge.classList.add(cls);
-  badge.innerHTML = `<span class="cm-dot"></span><span>${label} · ${Math.round(
+  badge.innerHTML = `<span class="cm-dot"></span><span>${labelText} · ${Math.round(
     r.score
   )}</span>`;
   badge.title = r.rationale || "";
 }
 
-// --- scoring -----------------------------------------------------------------
+// ---------- popover ----------
+function ensurePopover(container: HTMLElement): HTMLElement {
+  let pop = popovers.get(container);
+  if (pop) return pop;
+
+  pop = document.createElement("div");
+  pop.className = "cm-popover";
+  pop.innerHTML = `
+    <div class="cm-popover-arrow"></div>
+    <div class="cm-popover-body">
+      <div class="cm-popover-title">CRINGE METER</div>
+      <div class="cm-popover-content">
+        <div class="cm-popover-loading">
+          <span class="cm-dot cm-spin"></span><span> Scoring…</span>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(pop);
+
+  let hostId = (container as any).__cmHostId as string | undefined;
+  if (!hostId) {
+    hostId =
+      (crypto as any)?.randomUUID?.() || Math.random().toString(36).slice(2);
+    (container as any).__cmHostId = hostId;
+  }
+  pop.dataset.host = hostId;
+  hostIndex.set(hostId || "", container);
+
+  popovers.set(container, pop);
+  return pop;
+}
+
+function closeAllPopovers() {
+  document.querySelectorAll<HTMLElement>(".cm-popover.cm-show").forEach((p) => {
+    p.classList.remove("cm-show", "cm-top");
+    p.style.display = "none";
+    p.style.visibility = "";
+  });
+}
+function closePopover(container: HTMLElement) {
+  const pop = popovers.get(container);
+  if (!pop) return;
+  pop.classList.remove("cm-show", "cm-top");
+  pop.style.display = "none";
+  pop.style.visibility = "";
+}
+function positionPopover(badge: HTMLElement, pop: HTMLElement) {
+  const r = badge.getBoundingClientRect();
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const pad = 8;
+  const pw = Math.min(320, vw - pad * 2);
+
+  pop.style.width = pw + "px";
+  pop.style.maxWidth = `calc(100vw - ${pad * 2}px)`;
+  pop.style.visibility = "hidden";
+  pop.style.display = "block";
+  let ph = pop.getBoundingClientRect().height || 160;
+
+  let top = r.bottom + 10;
+  let placeAbove = false;
+  if (top + ph > vh - pad) {
+    top = Math.max(pad, r.top - ph - 10);
+    placeAbove = true;
+  }
+
+  let left = r.right - pw;
+  left = Math.max(pad, Math.min(left, vw - pw - pad));
+
+  pop.style.left = `${left}px`;
+  pop.style.top = `${top}px`;
+  pop.classList.toggle("cm-top", placeAbove);
+  pop.style.visibility = "visible";
+
+  const arrow = Math.max(12, Math.min(pw - 12, r.right - left - 12));
+  pop.style.setProperty("--ax", `${Math.round(arrow)}px`);
+}
+
+function renderPopover(pop: HTMLElement, r: ScoreResult | Error) {
+  const body = pop.querySelector(".cm-popover-content") as HTMLElement;
+  if (!body) return;
+
+  if (r instanceof Error) {
+    body.innerHTML = `
+      <div class="cm-popover-error">
+        <span class="cm-dot cm-red"></span>
+        <div>
+          <div class="cm-err-title">Error</div>
+          <div class="cm-err-msg">${ESC(r.message || "Failed")}</div>
+        </div>
+      </div>`;
+    return;
+  }
+
+  const band = r.label;
+  const labelText =
+    (
+      {
+        not_cringe: "Authentic (0–19)",
+        try_hard: "Not bad (20–39)",
+        meh: "Meh (40–59)",
+        cringe: "Cringe (60–79)",
+        wtf: "WTF (80–100)",
+      } as Record<string, string>
+    )[band] ?? "Score";
+
+  const bandClass =
+    band === "not_cringe"
+      ? "cm-tag-ok"
+      : band === "try_hard"
+      ? "cm-tag-ok"
+      : band === "meh"
+      ? "cm-tag-warn"
+      : band === "cringe"
+      ? "cm-tag-bad"
+      : "cm-tag-err";
+
+  body.innerHTML = `
+    <div class="cm-popover-row">
+      <span class="cm-tag ${bandClass}">${ESC(labelText)}</span>
+      <span class="cm-score">${Math.round(r.score)}</span>
+    </div>
+    ${
+      r.rationale
+        ? `<div class="cm-section"><div class="cm-section-title">Why</div><div class="cm-section-text">${ESC(
+            r.rationale
+          )}</div></div>`
+        : ""
+    }
+    ${
+      r.suggestion
+        ? `<div class="cm-section"><div class="cm-section-title">Rewrite</div><div class="cm-section-text">${ESC(
+            r.suggestion
+          )}</div></div>`
+        : ""
+    }`;
+}
+
+function openPopover(container: HTMLElement, badge: HTMLElement) {
+  const pop = ensurePopover(container);
+  closeAllPopovers();
+
+  const r = results.get(container);
+  if (r) renderPopover(pop, r);
+  else
+    (
+      pop.querySelector(".cm-popover-content") as HTMLElement
+    ).innerHTML = `<div class="cm-popover-loading"><span class="cm-dot cm-spin"></span><span> Scoring…</span></div>`;
+
+  pop.classList.add("cm-show");
+  positionPopover(badge, pop);
+
+  if (!globalClickBound) {
+    globalClickBound = true;
+    addEventListener(
+      "click",
+      (e) => {
+        const t = e.target as Element;
+        if (!t) return;
+        if (t.closest(".cm-popover") || t.closest(".cm-badge")) return;
+        closeAllPopovers();
+      },
+      true
+    );
+    addEventListener(
+      "keydown",
+      (e: KeyboardEvent) => e.key === "Escape" && closeAllPopovers()
+    );
+    addEventListener(
+      "scroll",
+      () => {
+        document
+          .querySelectorAll<HTMLElement>(".cm-popover.cm-show")
+          .forEach((p) => {
+            const hostId = p.dataset.host;
+            if (!hostId) return;
+            const host = hostIndex.get(hostId);
+            if (!host) return;
+            const badge = host.querySelector(".cm-badge") as HTMLElement | null;
+            if (badge) positionPopover(badge, p);
+          });
+      },
+      { passive: true }
+    );
+
+    addEventListener("resize", () => {
+      document
+        .querySelectorAll<HTMLElement>(".cm-popover.cm-show")
+        .forEach((p) => {
+          const hostId = p.dataset.host;
+          if (!hostId) return;
+          const host = hostIndex.get(hostId);
+          if (!host) return;
+          const badge = host.querySelector(".cm-badge") as HTMLElement | null;
+          if (badge) positionPopover(badge, p);
+        });
+    });
+  }
+}
+
+// ---------- scoring ----------
 const PROMPT = `You are a strict "Cringe Meter" for LinkedIn posts.
 Return a JSON object with keys: score (0-100 integer), label (not_cringe|try_hard|meh|cringe|wtf), rationale, suggestion.
 Scoring: reward authenticity, clarity; penalize fake hype, vague hustle, engagement-bait, cliché jargon, excessive emojis/hashtags, bragging w/o substance.
@@ -142,12 +379,8 @@ Text to score between <<< >>>.
 >>>`;
 
 async function scoreText(text: string): Promise<ScoreResult> {
-  const cfg = await chrome.storage.local.get([
-    "mode",
-    "openaiKey",
-    "serverUrl",
-  ]);
-  const mode = cfg.mode ?? "openai";
+  const cfg = await readLocal(["mode", "openaiKey", "serverUrl"]);
+  const mode = (cfg.mode as string) ?? "openai";
 
   if (mode === "server") {
     const base = (cfg.serverUrl || "").replace(/\/+$/, "");
@@ -161,7 +394,6 @@ async function scoreText(text: string): Promise<ScoreResult> {
     return (await res.json()) as ScoreResult;
   }
 
-  // --- OpenAI mode (same prompt, strict JSON) ---
   const key = cfg.openaiKey;
   if (!key) throw new Error("No OpenAI key configured");
 
@@ -172,7 +404,7 @@ async function scoreText(text: string): Promise<ScoreResult> {
       Authorization: `Bearer ${key}`,
     },
     body: JSON.stringify({
-      model: "gpt-4o-mini", // match your server’s model if different
+      model: "gpt-4o-mini",
       response_format: { type: "json_object" },
       temperature: 0.2,
       max_tokens: 300,
@@ -187,10 +419,9 @@ async function scoreText(text: string): Promise<ScoreResult> {
   try {
     obj = JSON.parse(typeof raw === "string" ? raw : String(raw ?? "{}"));
   } catch {
-    throw new Error("Bad JSON from OpenAI"); // shows ERR instead of fake 0
+    throw new Error("Bad JSON from OpenAI");
   }
 
-  // sanitize
   const score = Number(obj.score);
   if (!Number.isFinite(score)) throw new Error("Bad JSON: score");
   const allowed = ["not_cringe", "try_hard", "meh", "cringe", "wtf"];
@@ -207,7 +438,7 @@ async function scoreText(text: string): Promise<ScoreResult> {
   };
 }
 
-// --- observer ----------------------------------------------------------------
+// ---------- observer ----------
 function startObserver() {
   const seen = new WeakSet<Element>();
 
@@ -215,40 +446,55 @@ function startObserver() {
     if (seen.has(n)) return;
     if (!n.matches?.(POST_CANDIDATES)) return;
 
-    const container = normalizeContainer(n);
-    if (!container) return;
+    const anchor = findPostAnchor(n);
+    if (!anchor) return;
 
-    if (!looksLikePost(container)) return;
+    const container = normalizeContainer(anchor);
+    if (!container || !looksLikePost(container)) return;
     seen.add(container);
 
     const badge = ensureBadge(container);
 
-    chrome.storage.local.get(["autoscore", "debug"], (cfg) => {
+    readLocal(["autoscore", "debug"]).then((cfg) => {
       const autoscore = (cfg.autoscore ?? "on") === "on";
       const debug = cfg.debug === true;
 
-      const run = async () => {
+      const run = async (openAfter = false) => {
         setBadgeLoading(badge);
         const text = findPostText(container);
         try {
           const r = await scoreText(text);
+          results.set(container, r);
           setBadgeScore(badge, r);
+          if (openAfter) openPopover(container, badge);
           if (debug) console.log("[cringe] ok:", r, container);
         } catch (e: any) {
           setBadgeError(badge, e?.message || "ERR");
+          results.delete(container);
+          if (openAfter) openPopover(container, badge);
           if (debug) console.warn("[cringe] err:", e, container);
         }
       };
 
-      if (autoscore) run();
-      else badge.onclick = run;
+      badge.onclick = () => {
+        const existing = results.get(container);
+        if (existing) {
+          const pop = popovers.get(container);
+          const isOpen = !!pop?.classList.contains("cm-show");
+          if (isOpen) closePopover(container);
+          else openPopover(container, badge);
+        } else {
+          openPopover(container, badge);
+          run(true);
+        }
+      };
+
+      if (autoscore) run(false);
     });
   };
 
-  // initial sweep
   document.querySelectorAll(POST_CANDIDATES).forEach(processNode);
 
-  // dynamic content
   const mo = new MutationObserver((muts) => {
     for (const m of muts) {
       for (const node of Array.from(m.addedNodes)) {
