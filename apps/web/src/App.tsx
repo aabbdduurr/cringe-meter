@@ -56,6 +56,10 @@ export default function App() {
         suggestion: data.suggestion,
       });
       setDisplayScore(s);
+      // scroll to the meter on top
+      document
+        .getElementsByClassName("card")?.[0]
+        .scrollIntoView({ behavior: "smooth" });
     } catch {
       setResult({
         score: 0,
@@ -71,7 +75,7 @@ export default function App() {
 
   const placeholder = useMemo(
     () =>
-      `Paste a LinkedIn post, then hit “Is this cringe?”. We’ll sweep the dial and land on a band with a short reason and a cleaner rewrite.`,
+      `Paste a LinkedIn post, then hit “Score”. We’ll sweep the dial and land on a band with a short reason and a cleaner rewrite.`,
     []
   );
 
@@ -106,12 +110,6 @@ export default function App() {
           </div>
 
           <div className="textbox">
-            <textarea
-              style={{ fontSize: "16px", lineHeight: "1.45" }}
-              placeholder={placeholder}
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-            />
             <div className="actions">
               <button
                 className="btn"
@@ -122,6 +120,13 @@ export default function App() {
                 <span>{loading ? "Scoring…" : "Score"}</span>
               </button>
             </div>
+            <textarea
+              style={{ fontSize: "16px", lineHeight: "1.45" }}
+              placeholder={placeholder}
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+            />
+
             <ResultCard
               score={result?.score ?? null}
               label={result?.label ?? null}
