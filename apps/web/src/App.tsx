@@ -110,6 +110,19 @@ export default function App() {
           </div>
 
           <div className="textbox">
+            <ResultCard
+              score={result?.score ?? null}
+              label={result?.label ?? null}
+              rationale={result?.rationale}
+              suggestion={result?.suggestion}
+            />
+            <textarea
+              style={{ fontSize: "16px", lineHeight: "1.45" }}
+              placeholder={placeholder}
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+            />
+
             <div className="actions">
               <button
                 className="btn"
@@ -120,19 +133,7 @@ export default function App() {
                 <span>{loading ? "Scoring…" : "Score"}</span>
               </button>
             </div>
-            <textarea
-              style={{ fontSize: "16px", lineHeight: "1.45" }}
-              placeholder={placeholder}
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-            />
 
-            <ResultCard
-              score={result?.score ?? null}
-              label={result?.label ?? null}
-              rationale={result?.rationale}
-              suggestion={result?.suggestion}
-            />
             <div className="mini">
               The needle does a startup sweep like a car tachometer, for fun.
             </div>
