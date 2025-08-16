@@ -2,14 +2,12 @@ import { useEffect, useRef, useState } from "react";
 
 type Band = { from: number; to: number; color: string; label: string };
 
-// 0..100 → top semicircle (0°=right, 180°=left)
 const angleFor = (v: number) => 180 - Math.max(0, Math.min(100, v)) * 1.8;
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 const toRad = (deg: number) => (deg * Math.PI) / 180;
 const easeOut = (t: number) => 1 - Math.pow(1 - t, 3);
 
 function polar(cx: number, cy: number, r: number, deg: number) {
-  // draw up (screen y grows down)
   const rad = toRad(deg);
   return { x: cx + r * Math.cos(rad), y: cy - r * Math.sin(rad) };
 }
@@ -44,7 +42,6 @@ export function Gauge({
   loading?: boolean;
   onSweepDone?: () => void;
 }) {
-  // generous box
   const VB_W = 400,
     VB_H = 280;
   const cx = VB_W / 2,
@@ -52,11 +49,10 @@ export function Gauge({
     r = Math.min(VB_W, VB_H * 1.85) / 2;
 
   const [needle, _setNeedle] = useState(0);
-  const needleRef = useRef(0); // <-- source of truth for current value
+  const needleRef = useRef(0);
   const sweepDone = useRef(false);
   const raf = useRef<number | null>(null);
 
-  // keep ref in sync with state
   const setNeedle = (n: number) => {
     needleRef.current = n;
     _setNeedle(n);
@@ -65,8 +61,8 @@ export function Gauge({
   useEffect(() => {
     let mounted = true;
     (async () => {
-      await animateTo(100, 700); // up
-      await animateTo(0, 650); // and BACK smoothly
+      await animateTo(100, 700);
+      await animateTo(0, 650);
       if (!mounted) return;
       sweepDone.current = true;
       onSweepDone?.();
@@ -78,17 +74,13 @@ export function Gauge({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Only follow external value after the sweep
   useEffect(() => {
     if (!sweepDone.current) return;
     animateTo(value, 650);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
 
   function animateTo(target: number, duration = 600) {
-    // READ the actual current value, not a stale closure
     const from = needleRef.current;
-    // cancel any in-flight animation to avoid overlap
     if (raf.current) cancelAnimationFrame(raf.current);
 
     const start = performance.now();

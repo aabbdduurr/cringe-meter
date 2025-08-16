@@ -18,7 +18,6 @@ export async function scoreWithOpenAI(text: string) {
   try {
     j = JSON.parse(content);
   } catch {
-    // Try to salvage JSON (very light)
     const fixed = content.replace(/```json|```/g, "");
     j = JSON.parse(fixed);
   }

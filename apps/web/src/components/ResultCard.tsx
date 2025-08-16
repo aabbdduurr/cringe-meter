@@ -33,7 +33,6 @@ export function ResultCard({
   const [tab, setTab] = useState<"reason" | "rewrite">("reason");
   const color = COLOR[label];
 
-  // Whenever a new result arrives, default to Reason (or Rewrite if that’s the only content)
   useEffect(() => {
     if (suggestion?.trim()) setTab("reason");
     else setTab("reason");

@@ -10,7 +10,7 @@ const COLORS: Record<Label, string> = {
 const TITLES: Record<Label, string> = {
   not_cringe: "Authentic",
   try_hard: "Not Bad",
-  meh: "Salesy",
+  meh: "Meh",
   cringe: "Cringe",
   wtf: "WTF",
 };

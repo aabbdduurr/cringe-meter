@@ -27,7 +27,6 @@ export default function App() {
   const [result, setResult] = useState<CringeResult | null>(null);
   const activeLabel: Label | null = result?.label ?? null;
 
-  // optional tiny "blip" after landing to feel lively
   const [blip, setBlip] = useState(false);
   useEffect(() => {
     if (!result) return;
