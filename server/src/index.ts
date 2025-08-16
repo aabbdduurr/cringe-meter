@@ -7,6 +7,8 @@ import { router } from "./routes.js";
 import { ratelimit } from "./ratelimit.js";
 
 const app = express();
+
+app.set("trust proxy", true);
 app.use(helmet());
 app.use(cors({ origin: true }));
 app.use(express.json({ limit: "1mb" }));

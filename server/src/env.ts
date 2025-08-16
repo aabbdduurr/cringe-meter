@@ -14,6 +14,7 @@ export const env = {
   port: Number(process.env.PORT || 8787),
   openaiKey: process.env.OPENAI_API_KEY || "",
   dailyLimit: Number(process.env.DAILY_LIMIT || 50),
+  minuteLimit: Number(process.env.MINUTE_LIMIT || 5),
   redisUrl: process.env.REDIS_URL || "",
 };
 

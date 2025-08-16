@@ -85,6 +85,9 @@ OPENAI_API_KEY=sk-...
 # Rate limit (per IP per 24h)
 DAILY_LIMIT=50
 
+# Rate limit (per IP per minute)
+MINUTE_LIMIT=5
+
 # Optional Redis for distributed rate limiting; leave empty to use in-memory
 REDIS_URL=
 ```
